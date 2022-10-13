@@ -32,4 +32,5 @@ NounsVisionBatchTransfer.batchTransfer(startId, amount)
 5. The **Pod** can `batchTransfer` as many times as it has allowance to do so. For example, it can choose to transfer only half its allocation to save gas.
 
 _NOTE:_
+
 **NounsVisionBatchTransfer** batches only continuous token Id transfers (i.e. 751-800). Due to transfers out of **Nouns DAO** and back in, there may not be a "continuous batch" of Nouns Vision Glasses to satisify a **Pod**'s allocation. (ie. only tokenIds 777, 888, 900-1200 may be owned by Nouns DAO at any one time). It is possible that `NounsVisionBatchTransfer.getStartIdAndBatchAmount(POD_ADDRESS)` and `NounsVisionBatchTransfer.batchTransfer(startId, amount)` may need to be called several times to transfer the allowed amount of Nouns Vision Glasses.
