@@ -9,6 +9,8 @@ contract NounsVisionBatchTransferTest is Test {
     ERC721Like public nounsVision;
     address public nounsDAO;
     address pod1 = makeAddr("pod1");
+    address recipient1 = makeAddr("recipient1");
+    address recipient2 = makeAddr("recipient2");
     uint256 daoBalance;
 
     function setUp() public {
@@ -31,7 +33,7 @@ contract NounsVisionBatchTransferTest is Test {
         assertEq(amount, 1);
 
         vm.prank(pod1);
-        batcher.batchTransfer(startId, amount);
+        batcher.claimGlasses(startId, amount);
 
         (startId, amount) = batcher.getStartIdAndBatchAmount(pod1);
         assertEq(startId, 752);
@@ -55,7 +57,7 @@ contract NounsVisionBatchTransferTest is Test {
         batcher.addAllowance(address(pod1), daoBalance);
 
         vm.prank(pod1);
-        batcher.batchTransfer(startId, daoBalance);
+        batcher.claimGlasses(startId, daoBalance);
 
         vm.expectRevert(NounsVisionBatchTransfer.NotEnoughOwned.selector);
         (startId, ) = batcher.getStartIdAndBatchAmount(pod1);
@@ -88,7 +90,7 @@ contract NounsVisionBatchTransferTest is Test {
         batcher.disallow(pod1);
     }
 
-    function test_BATCHTRANSFER_happyCase() public {
+    function test_CLAIMGLASSES_happyCase() public {
         uint256 startId;
         uint256 amount = 50;
 
@@ -99,7 +101,7 @@ contract NounsVisionBatchTransferTest is Test {
 
         (startId, ) = batcher.getStartIdAndBatchAmount(pod1);
         vm.prank(pod1);
-        batcher.batchTransfer(startId, amount / 2);
+        batcher.claimGlasses(startId, amount / 2);
 
         assertEq(nounsVision.ownerOf(startId), address(pod1));
         assertEq(nounsVision.ownerOf(startId - 1 + amount / 2), address(pod1));
@@ -111,13 +113,13 @@ contract NounsVisionBatchTransferTest is Test {
         assertEq(startId, 751 + (amount / 2));
 
         vm.prank(pod1);
-        batcher.batchTransfer(startId, amount / 2);
+        batcher.claimGlasses(startId, amount / 2);
         assertEq(nounsVision.balanceOf(pod1), amount);
         assertEq(nounsVision.balanceOf(nounsDAO), daoBalance - amount);
         assertEq(batcher.allowanceFor(pod1), 0);
     }
 
-    function test_BATCHTRANSFER_Revert_NotEnoughOwned() public {
+    function test_CLAIMGLASSES_Revert_NotEnoughOwned() public {
         vm.startPrank(nounsDAO);
         nounsVision.setApprovalForAll(address(batcher), true);
         batcher.addAllowance(pod1, daoBalance * 2);
@@ -125,18 +127,18 @@ contract NounsVisionBatchTransferTest is Test {
 
         (uint256 startId, ) = batcher.getStartIdAndBatchAmount(pod1);
         vm.startPrank(pod1);
-        batcher.batchTransfer(startId, daoBalance - 1);
+        batcher.claimGlasses(startId, daoBalance - 1);
 
         (startId, ) = batcher.getStartIdAndBatchAmount(pod1);
         vm.expectRevert(NounsVisionBatchTransfer.NotEnoughOwned.selector);
-        batcher.batchTransfer(startId, 2);
+        batcher.claimGlasses(startId, 2);
     }
 
-    function test_BATCHTRANSFER_Revert_NotEnoughAllowance() public {
+    function test_CLAIMGLASSES_Revert_NotEnoughAllowance() public {
         (uint256 startId, ) = batcher.getStartIdAndBatchAmount(pod1);
         vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
         vm.prank(pod1);
-        batcher.batchTransfer(startId, 1);
+        batcher.claimGlasses(startId, 1);
 
         vm.startPrank(nounsDAO);
         nounsVision.setApprovalForAll(address(batcher), true);
@@ -144,13 +146,13 @@ contract NounsVisionBatchTransferTest is Test {
         vm.stopPrank();
 
         vm.startPrank(pod1);
-        batcher.batchTransfer(startId, 1);
+        batcher.claimGlasses(startId, 1);
 
         vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
-        batcher.batchTransfer(startId, 1);
+        batcher.claimGlasses(startId, 1);
     }
 
-    function test_BATCHTRANSFER_fuzz(
+    function test_CLAIMGLASSES_fuzz(
         address addr1,
         address addr2,
         uint256 amount1,
@@ -167,7 +169,7 @@ contract NounsVisionBatchTransferTest is Test {
         // NotEnoughAllowance
         vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
         vm.prank(addr1);
-        batcher.batchTransfer(startId, amount1);
+        batcher.claimGlasses(startId, amount1);
 
         // NotNounsDAO
         vm.expectRevert(NounsVisionBatchTransfer.NotNounsDAO.selector);
@@ -187,14 +189,148 @@ contract NounsVisionBatchTransferTest is Test {
             assertEq(batcher.allowanceFor(addr1), amount1);
             assertEq(batcher.allowanceFor(addr2), amount2);
         }
+
+        for (
+            uint256 tokenId = startId;
+            tokenId < startId + amount1;
+            tokenId++
+        ) {
+            vm.expectCall(
+                address(nounsVision),
+                abi.encodeCall(
+                    nounsVision.transferFrom,
+                    (nounsDAO, addr1, tokenId)
+                )
+            );
+        }
         vm.prank(addr1);
-        batcher.batchTransfer(startId, amount1);
+        batcher.claimGlasses(startId, amount1);
 
         (startId, ) = batcher.getStartIdAndBatchAmount(pod1);
+
+        for (
+            uint256 tokenId = startId;
+            tokenId < startId + amount2;
+            tokenId++
+        ) {
+            vm.expectCall(
+                address(nounsVision),
+                abi.encodeCall(
+                    nounsVision.transferFrom,
+                    (nounsDAO, addr2, tokenId)
+                )
+            );
+        }
         vm.prank(addr2);
-        batcher.batchTransfer(startId, amount2);
+        batcher.claimGlasses(startId, amount2);
 
         assertEq(batcher.allowanceFor(addr1), 0);
         assertEq(batcher.allowanceFor(addr2), 0);
+
+        // NotEnoughAllowance
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
+        vm.prank(addr1);
+        batcher.claimGlasses(0, 1);
+
+        if (amount1 + amount2 < 500) return;
+        vm.prank(nounsDAO);
+        batcher.addAllowance(addr1, 1);
+
+        // NotEnoughOwned
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughOwned.selector);
+        vm.prank(addr1);
+        batcher.claimGlasses(0, 1);
+    }
+
+    function test_SENDGLASSES_fuzz(
+        address pod,
+        address recipient,
+        uint256 startId
+    ) public {
+        vm.assume(pod != address(0));
+        vm.assume(recipient != address(0));
+        startId = bound(startId, 751, 1250);
+
+        // NotEnoughAllowance
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
+        vm.prank(pod);
+        batcher.sendGlasses(startId, recipient);
+
+        // NotNounsDAO
+        vm.expectRevert(NounsVisionBatchTransfer.NotNounsDAO.selector);
+        vm.prank(pod);
+        batcher.addAllowance(pod, 1);
+
+        vm.startPrank(nounsDAO);
+        nounsVision.setApprovalForAll(address(batcher), true);
+        batcher.addAllowance(pod, 1);
+        vm.stopPrank();
+
+        vm.expectCall(
+            address(nounsVision),
+            abi.encodeCall(
+                nounsVision.transferFrom,
+                (nounsDAO, recipient, startId)
+            )
+        );
+
+        vm.prank(pod);
+        batcher.sendGlasses(startId, recipient);
+        assertEq(batcher.allowanceFor(pod), 0);
+
+        // NotEnoughAllowance
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
+        vm.prank(pod);
+        batcher.sendGlasses(startId, recipient);
+    }
+
+    function test_SENDMANYGLASSES_fuzz(
+        address pod,
+        address[] calldata recipients
+    ) public {
+        vm.assume(pod != address(0));
+        vm.assume(recipients.length <= 10);
+        vm.assume(recipients.length > 0);
+
+        for (uint256 i; i < recipients.length; i++) {
+            vm.assume(recipients[i] != address(0));
+        }
+
+        // pseudo-random startId between owned tokenIds
+        uint256 startId = bound(uint160(recipients[0]), 751, 1241);
+
+        // NotEnoughAllowance
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
+        vm.prank(pod);
+        batcher.sendManyGlasses(startId, recipients);
+
+        // NotNounsDAO
+        vm.expectRevert(NounsVisionBatchTransfer.NotNounsDAO.selector);
+        vm.prank(pod);
+        batcher.addAllowance(pod, 1);
+
+        vm.startPrank(nounsDAO);
+        nounsVision.setApprovalForAll(address(batcher), true);
+        batcher.addAllowance(pod, recipients.length);
+        vm.stopPrank();
+
+        for (uint256 i = 0; i < recipients.length; i++) {
+            vm.expectCall(
+                address(nounsVision),
+                abi.encodeCall(
+                    nounsVision.transferFrom,
+                    (nounsDAO, recipients[i], startId + i)
+                )
+            );
+        }
+
+        vm.prank(pod);
+        batcher.sendManyGlasses(startId, recipients);
+        assertEq(batcher.allowanceFor(pod), 0);
+
+        // NotEnoughAllowance
+        vm.expectRevert(NounsVisionBatchTransfer.NotEnoughAllowance.selector);
+        vm.prank(pod);
+        batcher.sendManyGlasses(startId, recipients);
     }
 }
