@@ -46,6 +46,8 @@ NounsVisionBatchTransfer.sendGlasses(startId, addresses)
 
 #### Claim an Amount of Glasses
 
+Sends an amount of Glasses to the **Pod**'s address
+
 1. The **Pod** calls a view function (in Etherscan) with its own address to get the `startId` and `amount` parameters to use.
 
 ```
