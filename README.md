@@ -24,7 +24,11 @@ NounsVisionBatchTransfer.addAllowance(POD_ADDRESS, 10);
 
 A **Pod** can choose to leave their Nouns Vision Glasses in the possesion of Nouns DAO and only transfer a pair when they have a designated recipient (e.g. after a giveaway). When that recipient address is known:
 
-1. The **Pod** calls a view function (in Etherscan) with its own address to get the `startId` paramater to use.
+1. The **Pod** calls a view function (in Etherscan) to get the `startId` paramater to use.
+
+```
+NounsVisionBatchTransfer.getStartId(startId)
+```
 
 2. The **Pod** initiates the transfer using the `startId` and the recipient `address`
 
@@ -37,6 +41,10 @@ NounsVisionBatchTransfer.sendGlasses(startId, address)
 A **Pod** can choose to leave their Nouns Vision Glasses in the possesion of Nouns DAO and only transfer pairs when they have a designated recipients (e.g. after a giveaway). When the recipients' address is known:
 
 1. The **Pod** calls a view function (in Etherscan) with its own address to get the `startId` paramater to use.
+
+```
+NounsVisionBatchTransfer.getStartId(startId)
+```
 
 2. The **Pod** initiates the transfer using the `startId` and an array recipient `addresses` ([0xabc..., 0xdef...])
 

@@ -63,18 +63,11 @@ contract NounsVisionBatchTransfer {
     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
     **/
 
-    /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO and the maximum batch amount possible from this ID for a spender
+    /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO
     /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
     /// @return startId The first tokenId owned by Nouns DAO
-    /// @return amount The maximum batch amount from the startId for this spender
-    function getStartIdAndBatchAmount(address spender)
-        public
-        view
-        returns (uint256 startId, uint256 amount)
-    {
-        amount = NOUNS_VISION.balanceOf(NOUNS_DAO);
-
-        if (amount == 0) {
+    function getStartId() public view returns (uint256 startId) {
+        if (NOUNS_VISION.balanceOf(NOUNS_DAO) == 0) {
             revert NotEnoughOwned();
         }
 
@@ -85,16 +78,38 @@ contract NounsVisionBatchTransfer {
                 break;
             } catch {}
         }
+    }
 
-        for (amount; amount > 0; amount--) {
-            try NOUNS_VISION.ownerOf(startId + amount - 1) returns (
-                address owner
-            ) {
-                if (owner == NOUNS_DAO) break;
-            } catch {}
+    /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO and the maximum batch amount possible from this ID for a spender
+    /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
+    /// @dev Will revert NotEnoughAllowance() if spender has no allowance
+    /// @param spender Address to calculate maximum batch amount
+    /// @return startId The first tokenId owned by Nouns DAO
+    /// @return amount The maximum batch amount from the startId for this spender
+    function getStartIdAndBatchAmount(address spender)
+        public
+        view
+        returns (uint256 startId, uint256 amount)
+    {
+        if (allowanceFor[spender] == 0) {
+            revert NotEnoughAllowance();
         }
 
-        if (amount > allowanceFor[spender]) amount = allowanceFor[spender];
+        startId = getStartId();
+
+        uint256 maxAmount = _min(
+            allowanceFor[spender],
+            NOUNS_VISION.balanceOf(NOUNS_DAO)
+        );
+
+        // If we get this far, Nouns DAO owns at least 1 Nouns Vision Glasses
+        for (amount = 1; amount < maxAmount; amount++) {
+            try NOUNS_VISION.ownerOf(startId + amount) returns (address owner) {
+                if (owner != NOUNS_DAO) break;
+            } catch {
+                break;
+            }
+        }
     }
 
     /**
@@ -137,7 +152,7 @@ contract NounsVisionBatchTransfer {
         }
     }
 
-    /// @notice Sends a `recipient` Nouns Vision Glasses. Use `getStartIdAndBatchAmount(address)` to determine the `startId`
+    /// @notice Sends a `recipient` Nouns Vision Glasses. Use `getStartId()` to determine the `startId`
     /// @dev See `_subtractFromAllowanceOrRevert(uint256)` for revert cases
     /// @param startId The starting ID of the token transfer
     /// @param recipient Address to receive Nouns Vision Glasses
@@ -147,7 +162,7 @@ contract NounsVisionBatchTransfer {
         NOUNS_VISION.transferFrom(NOUNS_DAO, recipient, startId);
     }
 
-    /// @notice Sends a group of `recipients` Nouns Vision Glasses. Use `getStartIdAndBatchAmount(address)` to determine the `startId`
+    /// @notice Sends a group of `recipients` Nouns Vision Glasses. Use `getStartId()` to determine the `startId`
     /// @dev See `_subtractFromAllowanceOrRevert(uint256)` for revert cases
     /// @param startId The starting ID of the token transfer
     /// @param recipients Addresses to receive Nouns Vision Glasses
@@ -179,10 +194,18 @@ contract NounsVisionBatchTransfer {
         if (amount > allowance) {
             revert NotEnoughAllowance();
         }
+
         if (amount > NOUNS_VISION.balanceOf(NOUNS_DAO)) {
             revert NotEnoughOwned();
         }
+
         allowanceFor[msg.sender] = allowance - amount;
+    }
+
+    /// @notice Returns the smaller of two numbers
+    function _min(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a < b) return a;
+        return b;
     }
 
     receive() external payable {
