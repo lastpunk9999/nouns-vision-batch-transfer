@@ -34,6 +34,7 @@ contract NounsVisionBatchTransfer {
     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
     **/
 
+    // Number of allowed Nouns Vision Glasses receiver address can transfer
     mapping(address => uint256) public allowanceFor;
 
     /**
@@ -81,8 +82,9 @@ contract NounsVisionBatchTransfer {
     }
 
     /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO and the maximum batch amount possible from this ID for a receiver
-    /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
-    /// @dev Will revert NotEnoughAllowance() if receiver has no allowance
+    /// @dev Will revert:
+    /// - NotEnoughOwned() if Nouns DAO has no balance
+    /// - NotEnoughAllowance() if receiver has no allowance
     /// @param receiver Address to calculate maximum batch amount
     /// @return startId The first token ID owned by Nouns DAO
     /// @return amount The maximum batch amount from the startId for this receiver
@@ -185,8 +187,8 @@ contract NounsVisionBatchTransfer {
 
     /// @notice Checks `msg.sender` allowance against an amount and either subtracts or reverts
     /// @dev Will revert:
-    /// @dev  - NotEnoughAllowance(): `msg.sender` has not been granted enough allowance
-    /// @dev  - NotEnoughOwned(): Nouns DAO balance is less than the amount
+    /// - NotEnoughAllowance(): `msg.sender` has not been granted enough allowance
+    /// - NotEnoughOwned(): Nouns DAO balance is less than the amount
     /// @param amount Amount that should be removed from `msg.sender` allowance
     function _subtractFromAllowanceOrRevert(uint256 amount) internal {
         uint256 allowance = allowanceFor[msg.sender];
