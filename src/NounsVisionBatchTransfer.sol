@@ -80,25 +80,25 @@ contract NounsVisionBatchTransfer {
         }
     }
 
-    /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO and the maximum batch amount possible from this ID for a spender
+    /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO and the maximum batch amount possible from this ID for a receiver
     /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
-    /// @dev Will revert NotEnoughAllowance() if spender has no allowance
-    /// @param spender Address to calculate maximum batch amount
+    /// @dev Will revert NotEnoughAllowance() if receiver has no allowance
+    /// @param receiver Address to calculate maximum batch amount
     /// @return startId The first token ID owned by Nouns DAO
-    /// @return amount The maximum batch amount from the startId for this spender
-    function getStartIdAndBatchAmount(address spender)
+    /// @return amount The maximum batch amount from the startId for this receiver
+    function getStartIdAndBatchAmount(address receiver)
         public
         view
         returns (uint256 startId, uint256 amount)
     {
-        if (allowanceFor[spender] == 0) {
+        if (allowanceFor[receiver] == 0) {
             revert NotEnoughAllowance();
         }
 
         startId = getStartId();
 
         uint256 maxAmount = _min(
-            allowanceFor[spender],
+            allowanceFor[receiver],
             NOUNS_VISION.balanceOf(NOUNS_DAO)
         );
 
@@ -118,25 +118,25 @@ contract NounsVisionBatchTransfer {
     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
     **/
 
-    /// @notice Add an allowance for spender address to batch send an amount of Nouns Vision Glasses
-    /// @param spender Address to allow
+    /// @notice Add an allowance for receiver address to batch send an amount of Nouns Vision Glasses
+    /// @param receiver Address to allow
     /// @param amount Batch amount allowed
-    function addAllowance(address spender, uint256 amount)
+    function addAllowance(address receiver, uint256 amount)
         external
         onlyNounsDAO
     {
-        allowanceFor[spender] += amount;
+        allowanceFor[receiver] += amount;
     }
 
-    /// @notice Removes all allowance for the spender address
-    /// @param spender Address to disallow
-    function disallow(address spender) external onlyNounsDAO {
-        delete allowanceFor[spender];
+    /// @notice Removes all allowance for the receiver address
+    /// @param receiver Address to disallow
+    function disallow(address receiver) external onlyNounsDAO {
+        delete allowanceFor[receiver];
     }
 
     /**
     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-      SPENDER FUNCTIONS
+      receiver FUNCTIONS
     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
     **/
 
