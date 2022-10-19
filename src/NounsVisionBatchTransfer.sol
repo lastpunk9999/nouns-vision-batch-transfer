@@ -65,13 +65,13 @@ contract NounsVisionBatchTransfer {
 
     /// @notice Calculate the first Nouns Vision Glasses token ID owned by Nouns DAO
     /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
-    /// @return startId The first tokenId owned by Nouns DAO
+    /// @return startId The first token ID owned by Nouns DAO
     function getStartId() public view returns (uint256 startId) {
         if (NOUNS_VISION.balanceOf(NOUNS_DAO) == 0) {
             revert NotEnoughOwned();
         }
 
-        // Nouns DAO was sent 500 Nouns Vision Glasses starting from tokenId 751
+        // Nouns DAO was sent 500 Nouns Vision Glasses starting at token ID 751
         for (startId = 751; startId <= 1250; startId++) {
             try NOUNS_VISION.ownerOf(startId) returns (address owner) {
                 if (owner != NOUNS_DAO) continue;
@@ -84,7 +84,7 @@ contract NounsVisionBatchTransfer {
     /// @dev Will revert NotEnoughOwned() if Nouns DAO has no balance
     /// @dev Will revert NotEnoughAllowance() if spender has no allowance
     /// @param spender Address to calculate maximum batch amount
-    /// @return startId The first tokenId owned by Nouns DAO
+    /// @return startId The first token ID owned by Nouns DAO
     /// @return amount The maximum batch amount from the startId for this spender
     function getStartIdAndBatchAmount(address spender)
         public
